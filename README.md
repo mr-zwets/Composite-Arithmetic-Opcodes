@@ -1,4 +1,4 @@
-# CHIP-2023-07-Composite-Arithmetic-Opcodes: Composite Arithmetic Opcodes
+# CHIP-2023-07-Composite-Arithmetic-Opcodes
 
         Title: Composite Math Opcodes
         Type: Standards
@@ -57,13 +57,17 @@ Even UniSwap V3 makes heavy use of a [`muldiv` helperfunction](https://docs.unis
 
 With `op_muldiv` and `op_mulmod` the result of a multiplication of two 64-bit integers can be represented as a uint126 by using two 64-bit integers
 (as demonstrated [here](https://medium.com/wicketh/mathemagic-full-multiply-27650fec525d)).
-Also the addition and subtraction of two uint126 numbers can be calculated by utilizing `op_muldiv` but for division of an uint126 the 
-[CHIP-2021-05-loops: Bounded Looping Operations](https://github.com/bitjson/bch-loops) is still required in addition to `op_muldiv` to make it practical
+The addition and subtraction of two uint126 numbers would require a workaround for overflows which involves masking the highest bit and adding up the resulting int62s. This way uint126 addition and subtraction is already possible without loss of precision but for division of an uint126 the 
+[CHIP-2021-05-loops: Bounded Looping Operations](https://github.com/bitjson/bch-loops) is required in addition to `op_muldiv` to make it practical
 (as demonstrated [here](https://medium.com/wicketh/mathemagic-512-bit-division-in-solidity-afa55870a65)).
 
-The addition of the two composite aritmatic opcodes serve as primitives for building user-space libraries that enable higher order precision.
+The two new composite aritmatic opcodes serve as primitives for building user-space libraries that enable higher order (uint126) math.
 CashScript is investigating [enabling support for libraries/macros](https://github.com/CashScript/cashscript/issues/153) so a user-space library for 
 uint126 math could be built and utilized by other contracts.
+
+### Easy overflow check
+
+If a contract has conditional logic for when a calculations would overflow, this condition can be easily check using `op_muldiv` by using the maximum integer as divisor. Then the result return a number `!=0` on overflow and `0` otherwise. 
 
 ## Costs & Risk Mitigation
 
@@ -97,6 +101,16 @@ There are two free adjecent codepoints available of the disabled `op_2mul` and `
 | --- | --- | --- | --- | --- | --- |
 |OP_MULDIV|141|0x8d|a b c|out|*a* is first multiplied by *b* then divided by *c* and the quotient of the division is returned. The intermediate product CAN be in the INT128 range, while the quotient MUST be in the INT64 range. Sign is preserved and *c* MUST be a non-zero value.|
 |OP_MULMOD|142|0x8e|a b c|out|*a* is first multiplied by *b* then divided by *c* and the modulus of the division is returned. The intermediate product CAN be in the INT128 range, while the modulus MUST be in the INT64 range. Sign is preserved and *c* MUST be a non-zero value.|
+
+## Rationale
+
+This section documents design decisions made in this specification.
+
+### Complete set of composite operations for overflows
+
+Only the composite aritmatic opcodes `op_muldiv` and `op_mulmod` are proposed as those are immediately useful. Other composite arithmetic functionality (`adddiv`, `addmod`, `subdiv` and `subdiv`) is very useful in simplifying uint126 math and in enabling easy overflow checks. However the number of cases where addition or subtraction overflows are much smaller than for multiplication, and it is possible to workaround the overflow without losing precision.
+
+Alternatives include reserving 6 codepoints or starting with a shared codepoint right away for all composite operations.
 
 ## Evaluation of Alternatives
 
