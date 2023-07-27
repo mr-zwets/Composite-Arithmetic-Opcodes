@@ -6,7 +6,7 @@
         Owners: Mathieu Geukens & bitcoincashautist 
         Status: Draft
         Initial Publication Date: 2023-07-05
-        Latest Revision Date: 2023-07-07
+        Latest Revision Date: 2023-07-27
 
 ## Summary
 
@@ -66,7 +66,7 @@ to make it practical (as shown [here](https://medium.com/wicketh/mathemagic-512-
 The four new composite arithmetic opcodes serve as primitives for building user-space libraries that enable higher order (int127) math.
 CashScript is investigating [enabling support for libraries/macros](https://github.com/CashScript/cashscript/issues/153) 
 so a user-space library for int127 math could be built and utilized by other contracts.
-In this CHIP an example `Math.cash` CashScript library is added to demonstrate the simplicity of int127 math with the introduction of the new opcodes.
+In this CHIP an example `Int127Math.cash` CashScript library is added to demonstrate the simplicity of int127 math with the introduction of the new opcodes.
 
 ### Easy overflow check
 
@@ -112,12 +112,9 @@ This section documents design decisions made in this specification.
 
 ### Complete set of composite operations for overflows
 
-The set of four composite opcodes enables the full usecase, there is no need for `op_subdiv` and a corresponding `op_submod` as this can easily be done with
-the composite addition opcodes just by fliping the sign of the second argument. This is illustrated in the `Math.cash` example library. 
-The full set of composite opcodes is proposed instead of just the immediately useful `op_muldiv` for the more narrow AMM usecases to enable higher 
-precision math which is useful much more broadly.
-
-Trying to do int127 addition and subtraction without the composite addition opcodes is roundabout and complex, while technically possible without losing precision, it was found to be much cleaner to include it along side the composite multiplication opcodes to complete the set.
+The set of four composite opcodes enables int127 math in a very clean and concise way, as shown by the `Int127Math.cash` example library. There is no need for a separate `op_subdiv` and a corresponding `op_submod` as this can easily be done with
+the composite addition opcodes by just fliping the sign of the second argument.
+This CHIP proposes to add this complete set of composite opcodes instead of just the immediately useful `op_muldiv` for the more narrow CPMM usecases to enable higher precision (int127) math which is useful much more broadly.
 
 ### Choice of codepoints
 
@@ -127,13 +124,20 @@ a reasonable gap for possible future introspection opcodes, so they could be gro
 
 ## Evaluation of Alternatives
 
+### Higher script limits
+
+With a proposal such as [CHIP 2021-05 Targeted Virtual Machine Limits](https://bitcoincashresearch.org/t/chip-2021-05-targeted-virtual-machine-limits/437), it becomes practically feasable to emulate `muldiv`,`mulmod`,`adddiv` & `addmod` functionality.
+This is demonstrated in the `emulatedOpcodes.cash` example CashScript library, which only uses the current VM capabilities.
+As can be seen from just the file length, it would be impractical to use such functions in smart contracts due to the 201 opcode & 520 bytesize limit.
+By lifting or re-engeneering these limits, the same functionality proposed in the CHIP can be achieved at the cost of larger smart contracts.
+With good library support in Cashscript the complexity of using such emulated functions can be hidden from developers.
+The `Int127Math.cash` library could work by importing `emulatedOpcodes.cash` instead of utilizing native `muldiv`,`mulmod`,`adddiv` & `addmod` functions.
+
 ### Larger integers
 
 An alternative solution for solving the overflow problem of 64-bit integer calculations is to simply extend the integer length.
 However, even with larger integers there would still be a need for emulation of higher precision math.
-This is illustrated by UniSwap V3 making good use using a `MulDiv` helperfunction despite the 256-bit integer precision of the EVM.
-UniSwap can emulate `MulDiv` functionality with the native `mulmod` EVM opcode, it also makes use of the fact that the Ethereum math opcodes
-such as multiplication do allow for overflow and return the higher-order bits.
+As shown by UniSwap V3 still using a `MulDiv` helperfunction despite the 256-bit integer precision of the EVM.
 
 If Bitcoin Cash upgrades to larger integers (e.g. 128-bit), then `op_muldiv` and `op_mulmod` should also use this same level of precision for the result
 while allowing intermediate multiplication up to double the size (256-bit).
@@ -152,6 +156,10 @@ while allowing intermediate multiplication up to double the size (256-bit).
 
 ## Changelog
 
+- **v1.1.0 – 2022-7-27**
+  - added Higher script limits to evaluated alternative
+  - added `emulatedOpcodes.cash` example CashScript library
+  - changed the `Math.cash` file to `Int127Math.cash`
 - **v1.0.0 – 2022-7-07**
   - Expand CHIP to also include `op_adddiv` and `op_addmod`
   - change codepoints
