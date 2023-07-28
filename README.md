@@ -6,7 +6,7 @@
         Owners: Mathieu Geukens & bitcoincashautist 
         Status: Draft
         Initial Publication Date: 2023-07-05
-        Latest Revision Date: 2023-07-27
+        Latest Revision Date: 2023-07-28
 
 ## Summary
 
@@ -70,7 +70,19 @@ In this CHIP an example `Int127Math.cash` CashScript library is added to demonst
 
 ### Easy overflow check
 
-If a contract has conditional logic for when a calculations would overflow, this condition can be easily check using `op_muldiv` and `op_adddiv` by using the maximum integer as divisor. Then the result return a number `!=0` on overflow and `0` otherwise. 
+`op_muldiv` and `op_adddiv` serve as an easy overflow check for when a contract wants to check whether a multiplication, addition or subtraction would overflow so the contract can provide a separate codepath for this overflow case instead of instantly failing the transaction.
+This overflow check is done by using by using the maximum integer as divisor in `op_muldiv` or `op_adddiv`, the result then returns a number `!=0` on overflow and `0` otherwise. See the following CashScript code as an example:
+
+```
+  bool mulOverflows = muldiv(a, b, maxint) != 0;
+  if(mulOverflows){
+    ...
+  } else {
+    ...
+  }
+```
+
+If contracts currently want to implement such an overflow check they need to emulate the 127int multiplication, addition or subtraction as worked out in `emulatedOpcodes.cash`.
 
 ## Costs & Risk Mitigation
 
@@ -78,7 +90,7 @@ The following costs and risks have been assessed.
 
 ### Modification to Transaction Validation
 
-Modifications to VM limits have the potential to increase worst-case transaction validation costs and expose VM implementations to Denial of Service (DOS) attacks.
+The addition of new opcodes has the potential to increase worst-case transaction validation costs and expose VM implementations to Denial of Service (DOS) attacks.
 
 **Mitigations**: A simple arithmetic sequence such as multiplying-dividing or multiplying-modulo should have no impact on worst-case transaction validation costs 
 and the DOS-attack surface.  
@@ -156,6 +168,8 @@ while allowing intermediate multiplication up to double the size (256-bit).
 
 ## Changelog
 
+- **v1.1.1 – 2022-7-28**
+  - clarified easy overflow check section
 - **v1.1.0 – 2022-7-27**
   - added Higher script limits to evaluated alternative
   - added `emulatedOpcodes.cash` example CashScript library
