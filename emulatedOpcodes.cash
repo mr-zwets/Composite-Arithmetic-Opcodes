@@ -1,33 +1,34 @@
 library EmulatedOpcodes {
-  function int64toints32(int a) returns (int, int) {
+  function int63toints32(int a) returns (int, int) {
+    // int as a0 * maxInt32 + a1
     // get higher & lower bytes by using 32-bit division & modulo
-    int constant maxInt32 = 2147483647;
-    int a0 = a / maxInt32;
+    int constant maxInt32 = 2147483648; // 2 ** 31
     int a1 = a % maxInt32;
+    int a0 = a / maxInt32;
+    require(a0 < maxInt32); // int63 check
         
     return a0, a1;
   }
 
   function addints32returnints32(int a,  int b) returns (int, int) {
-    // regular addition
     int result = a + b;
     // check for overflow int32
-    int constant maxInt32 = 2147483647;
+    int constant maxInt32 = 2147483648; // 2 ** 31
     int s1 = result % maxInt32;
     int s0 = result / maxInt32;
 
     return s0, s1;
   }
 
-  function addint64returnint127(int a, int b) returns (int, int) {
-    // split int64 into int32
-    int a0, int a1 = int64toints32(a);
-    int b0, int b1 = int64toints32(b);
+  function addints63returnint125(int a, int b) returns (int, int) {
+    // split int63 into int32
+    int a0, int a1 = int63toints32(a);
+    int b0, int b1 = int63toints32(b);
 
     int lower0, int lower1 = addints32returnints32(a1 + b1);
     int higher0, int higher1 = addints32returnints32(a0 + b0);
 
-    int constant maxInt32 = 2147483647;
+    int constant maxInt32 = 2147483648; // 2 ** 31
     int result = lower1 + (lower0 + higher1) * maxInt32;
     int s1 = result;
     int s0 = higher0;
@@ -35,10 +36,10 @@ library EmulatedOpcodes {
     return s0, s1;
   }
 
-  function mulint64returnint127(int a, int b) returns (int, int) {
-    // split int64 into int32
-    int a0, int a1 = int64toints32(a);
-    int b0, int b1 = int64toints32(b);
+  function mulints63returnint125(int a, int b) returns (int, int) {
+    // split int63 into int32
+    int a0, int a1 = int63toints32(a);
+    int b0, int b1 = int63toints32(b);
 
     // multiplication lower & higher bytes
     int mult1 = a1 * b1;
@@ -46,17 +47,17 @@ library EmulatedOpcodes {
 
     // multiplication cross product bytes
     int mid = a0 * b1 + a1 * b0;
-    int mid0, int mid1 =  int64toints32(mid);
+    int mid0, int mid1 =  int63toints32(mid);
 
-    int constant maxInt32 = 2147483647;
+    int constant maxInt32 = 2147483648; // 2 ** 31
     mid1 = mid1 * maxInt32;
-    int overflow, int s1 = addint64returnint127(mult1, mid1);
+    int overflow, int s1 = addints63returnint125(mult1, mid1);
     int s0 = mult0 + mid0 + overflow;
     return s0, s1;
   }
 
-  // check greater than inequality between two int127
-  function int127GTcheck(int a0, int a1, int b0, int b1) returns (bool) {
+  // check greater than inequality between two int125
+  function int125GTcheck(int a0, int a1, int b0, int b1) returns (bool) {
     bool isGT = a0 >= b0;
     if(a0 == b0){
       isGT = a1 >= b1;
@@ -64,47 +65,47 @@ library EmulatedOpcodes {
     return isGT;
   }
 
-  function checkdivint127byint64(int dividend0, int dividend1, int divisor, int quotient) returns () {
-    int s0, int s1 = mulint64returnint127(divisor, quotient);
-    int t0, int t1 = mulint64returnint127(divisor, quotient+1);
+  function checkdivint125byint63(int dividend0, int dividend1, int divisor, int quotient) returns () {
+    int s0, int s1 = mulints63returnint125(divisor, quotient);
+    int t0, int t1 = mulints63returnint125(divisor, quotient+1);
 
-    require(int127GTcheck(dividend0, dividend1, s0, s1) == true);
-    require(int127GTcheck(dividend0, dividend1, t0, t1) == false);
+    require(int125GTcheck(dividend0, dividend1, s0, s1) == true);
+    require(int125GTcheck(dividend0, dividend1, t0, t1) == false);
   }
 
   function adddiv(int a, int b, int c, int result) returns (int) {
-    int s0, int s1 = addint64returnint127(a, b);
-    checkdivint127byint64(s0, s1, c, result);
+    int s0, int s1 = addints63returnint125(a, b);
+    checkdivint125byint63(s0, s1, c, result);
 
     return result;
   }
 
   function muldiv(int a, int b, int c, int result) returns (int) {
-    int s0, int s1 = mulint64returnint127(a, b);
-    checkdivint127byint64(s0, s1, c, result);
+    int s0, int s1 = mulints63returnint125(a, b);
+    checkdivint125byint63(s0, s1, c, result);
 
     return result;
   }
 
-  function checkmodint127byint64(int dividend0, int dividend1, int divisor, int quotient, int modulus) returns () {
-    int s0, int s1 = mulint64returnint127(divisor, quotient);
+  function checkmodint125byint63(int dividend0, int dividend1, int divisor, int quotient, int modulus) returns () {
+    int s0, int s1 = mulints63returnint125(divisor, quotient);
     s1 = s1 + modulus;
 
-    // int127equaltitycheck
+    // int125equaltitycheck
     require(dividend0 == s0);
     require(dividend1 == s1);
   }
 
   function addmod(int a, int b, int c, int quotient, int result) returns (int) {
-    int s0, int s1 = addint64returnint127(a, b);
-    checkmodint127byint64(s0, s1, c, quotient, result);
+    int s0, int s1 = addints63returnint125(a, b);
+    checkmodint125byint63(s0, s1, c, quotient, result);
 
     return result;
   }
 
   function mulmod(int a, int b, int c, int result) returns (int) {
-    int s0, int s1 = mulint64returnint127(a, b);
-    checkmodint127byint64(s0, s1, c, result);
+    int s0, int s1 = mulints63returnint125(a, b);
+    checkmodint125byint63(s0, s1, c, result);
 
     return result;
   }

@@ -6,7 +6,7 @@
         Owners: Mathieu Geukens & bitcoincashautist 
         Status: Draft
         Initial Publication Date: 2023-07-05
-        Latest Revision Date: 2023-07-28
+        Latest Revision Date: 2023-11-24
 
 ## Summary
 
@@ -15,8 +15,11 @@ This proposal adds four new math opcodes to the Bitcoin Cash Virtual Machine (BC
 `op_muldiv` greatly simplifies contracts using 64-bit integer multiplication in intermediate calculations.
 These calculations currently fail on overflow so contract authors need to either restrict input ranges or use clever math workarounds which sacrifice precision.
 
-Together, the set of composite opcodes allows contracts to emulate higher order math (int127) easily using 64-bit integers as demonstrated 
-by the included example CashScript Math library. Allowing contract authors to design their contracts for the precision needed for their specific usecase.
+Together, the set of composite opcodes allows contracts to emulate int127 math easily using 64-bit integers as demonstrated 
+by the included `int127Math.cash` example CashScript Math library. This makes working with full precision calculations and 
+working around overflows very easy with minimal overhead.
+
+With retargetted VM limits it would become viable to emulate the functionality of composite arthitmetic opcodes for 63-bit integers, as demonstrated in `emulatedOpcodes.cash`.
 
 ## Deployment
 
@@ -24,7 +27,7 @@ Deployment of this specification is proposed for the May 2024 upgrade.
 
 ## Motivation
 
-Bitcoin Cash has upgraded to 64-bit integers and now with the advent of CashTokens the BCH VM enables complex applications,
+Bitcoin Cash has upgraded to 64-bit integers and now with the advent of CashTokens the BCH VM enables complex DeFi applications,
 this poses the need both for higher-order math and for allowing overflows in intermediate calculations.
 
 Now, shortly after the CashTokens upgrade there are already multiple different Constant ProductMarket Maker (CPMM) contracts live on the network 
@@ -33,7 +36,7 @@ The composite arithmetic opcode `op_muldiv` allows the intermediate calculation 
 leading to simpler, more efficient and more capable smart contracts.
 
 Moreover, the introduction of composite arithmetic opcodes for multiplication and addition enables convenient emulation of higher precision math in BCH contracts.
-This way contract authors can design their contract for the precision needed for their specific usecase.
+This way contract authors can work with full precision calculations and overflows easily and with minimal overhead.
 
 ## Benefits
 
@@ -82,7 +85,7 @@ This overflow check is done by using by using the maximum integer as divisor in 
   }
 ```
 
-If contracts currently want to implement such an overflow check they need to emulate the 127int multiplication, addition or subtraction as worked out in `emulatedOpcodes.cash`.
+If contracts currently want to implement such an overflow check they need to emulate higher order math, which can be worked out as described in `emulatedOpcodes.cash`.
 
 ## Costs & Risk Mitigation
 
@@ -143,7 +146,7 @@ This is demonstrated in the `emulatedOpcodes.cash` example CashScript library, w
 As can be seen from just the file length, it would be impractical to use such functions in smart contracts due to the 201 opcode & 520 bytesize limit.
 By lifting or re-engeneering these limits, the same functionality proposed in the CHIP can be achieved at the cost of larger smart contracts.
 With good library support in Cashscript the complexity of using such emulated functions can be hidden from developers.
-The `Int127Math.cash` library could work by importing `emulatedOpcodes.cash` instead of utilizing native `muldiv`,`mulmod`,`adddiv` & `addmod` functions.
+An important difference is that `emulatedOpcodes.cash` splits integers into two 32-bit integers, this has the limitation that this can only represent up-to 63-bit integers to use with the emulated `muldiv`,`mulmod`,`adddiv` & `addmod` which in turn can be use to emulate 125-bit integer math (instead of the 127-bit math by having the native opcodes).
 
 ### Larger integers
 
@@ -168,6 +171,9 @@ while allowing intermediate multiplication up to double the size (256-bit).
 
 ## Changelog
 
+- **v1.2.0 – 2022-11-24**
+  - fixes to emulated opcodes library
+  - clarify that emulated opcodes can only do int63, and emulate int125 math
 - **v1.1.1 – 2022-7-28**
   - clarified easy overflow check section
 - **v1.1.0 – 2022-7-27**
