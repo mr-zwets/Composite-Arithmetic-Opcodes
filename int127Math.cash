@@ -1,14 +1,16 @@
 library Int127Math {
   function addint64returnint127(int a, int b) returns (int, int) {
-    int s1 = addmod(a, b, maxint);
-    int s0 = adddiv(a, b, maxint);
+    int constant maxInt64 = 9223372036854775807;
+    int s1 = addmod(a, b, maxInt64);
+    int s0 = adddiv(a, b, maxInt64);
     return s0, s1;
   }
 
   // fails on int127 overflow
   function addint127(int a0, int a1, int b0, int b1) returns (int, int) {
-    int s1 = addmod(a, b, maxint);
-    int s0 = a0 + b0 + adddiv(a, b, maxint);
+    int constant maxInt64 = 9223372036854775807;
+    int s1 = addmod(a, b, maxInt64);
+    int s0 = a0 + b0 + adddiv(a, b, maxInt64);
     return s0, s1;
   }
 
@@ -22,15 +24,17 @@ library Int127Math {
   }
 
   function mulint64returnint127(int a, int b) returns (int, int) {
-    int s1 = mulmod(a, b, maxint);
-    int s0 = muldiv(a, b, maxint);
+    int constant maxInt64 = 9223372036854775807;
+    int s1 = mulmod(a, b, maxInt64);
+    int s0 = muldiv(a, b, maxInt64);
     return s0, s1;
   }
 
   // fails on int127 overflow
   function mulint127(int a0, int a1, int b0, int b1) returns (int, int) {
-    int s1 = mulmod(a, b, maxint);
-    int s0 = a0 * b0 + muldiv(a, b, maxint);
+    int constant maxInt64 = 9223372036854775807;
+    int s1 = mulmod(a, b, maxInt64);
+    int s0 = a0 * b0 + muldiv(a, b, maxInt64);
     return s0, s1;
   }
 }

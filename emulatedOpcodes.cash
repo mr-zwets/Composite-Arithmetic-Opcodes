@@ -1,26 +1,21 @@
 library EmulatedOpcodes {
   function int64toints32(int a) returns (int, int) {
-    // split int64 into int32
-    int bytesA = bytes8(a);
-    bytes a0, bytes a1 = bytesA.split(4);
+    // get higher & lower bytes by using 32-bit division & modulo
+    int constant maxInt32 = 2147483647;
+    int a0 = a / maxInt32;
+    int a1 = a % maxInt32;
         
-    return int(a0), int(a1);
+    return a0, a1;
   }
 
   function addints32returnints32(int a,  int b) returns (int, int) {
-    // regular case without overflow
-    int result = a1 + b1;
-    int s1 = result;
-    int s0 = 0;
-
+    // regular addition
+    int result = a + b;
     // check for overflow int32
-    bool overflow = bytes(result).length > 4;
-    if(overflow){
-      bytes lowerBytes = bytes(result).split(1)[1];
-      s1 = int(lowerBytes);
-      s0 = 1;
-    }
-        
+    int constant maxInt32 = 2147483647;
+    int s1 = result % maxInt32;
+    int s0 = result / maxInt32;
+
     return s0, s1;
   }
 
@@ -29,8 +24,8 @@ library EmulatedOpcodes {
     int a0, int a1 = int64toints32(a);
     int b0, int b1 = int64toints32(b);
 
-    int lower0, int lower1 = addints32returnint32(a1 + b1);
-    int higher0, int higher1 = addints32returnint32(a0 + b0);
+    int lower0, int lower1 = addints32returnints32(a1 + b1);
+    int higher0, int higher1 = addints32returnints32(a0 + b0);
 
     int constant maxInt32 = 2147483647;
     int result = lower1 + (lower0 + higher1) * maxInt32;
@@ -61,7 +56,7 @@ library EmulatedOpcodes {
   }
 
   // check greater than inequality between two int127
-  function int127GTcheck(int a0, int a1, int b0, int b1) returns () {
+  function int127GTcheck(int a0, int a1, int b0, int b1) returns (bool) {
     bool isGT = a0 >= b0;
     if(a0 == b0){
       isGT = a1 >= b1;
