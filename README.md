@@ -6,7 +6,7 @@
         Owners: Mathieu Geukens & bitcoincashautist 
         Status: Draft
         Initial Publication Date: 2023-07-05
-        Latest Revision Date: 2023-11-24
+        Latest Revision Date: 2023-11-29
 
 ## Summary
 
@@ -19,12 +19,11 @@ Together, the set of composite opcodes allows contracts to emulate int127 math e
 by the included `int127Math.cash` example CashScript Math library. This makes working with full precision calculations and 
 working around overflows very easy with minimal overhead.
 
-With retargetted VM limits it would become viable to emulate the functionality of composite arthitmetic opcodes for 63-bit integers, as demonstrated in `emulatedOpcodes.cash`.
+With retargetted VM limits it would become viable to emulate the functionality of these composite arthitmetic opcodes for 63-bit integers, as demonstrated in `emulatedOpcodes.cash`.
 
 ## Deployment
 
-Deployment of this specification is proposed for the May 2024 upgrade.
-
+The proposal is still in draft phase and not ready for deployment.
 ## Motivation
 
 Bitcoin Cash has upgraded to 64-bit integers and now with the advent of CashTokens the BCH VM enables complex DeFi applications,
@@ -51,12 +50,14 @@ There are two overflow strategies for contracts using mutiplication in an interm
 
 In the former case, the introduction of `op_muldiv` would allow contract authors to expand the ranges of allowed coefficients easily.
 In the latter  case, the introduction of `op_muldiv` would allow contract authors to simplify their contract by getting rid of the 
-modulo math workaround and instead use the native functionality. This would make the contract simpler (less error-prone) and more efficient
-both in terms of opcodes and bytesize.
+modulo math workaround and instead use the native functionality.
 
 [Cauldron DEX](https://www.cauldron.quest/) is an example of the first strategy and [Fex.cash](https://fex.cash/) of the second one.
 Both projects would benefit from having the option to utilize `op_muldiv` in a future version.
-Even UniSwap V3 makes heavy use of a [`muldiv` helperfunction](https://docs.uniswap.org/contracts/v3/reference/core/libraries/FullMath) and has [taken initiative](https://ethereum-magicians.org/t/create-a-new-opcode-for-muldiv/8574) to get an `muldiv` opcode added to the EVM.
+For Cauldron DEX this allows the contract to work with CashTokens with a very large supply (meaning either many decimals places or a very low value per token), whereas currently such pools would not work because of arithmetic overflows.
+For Fex.cash this would mean a simpler (less error-prone) and more efficient contract both in terms of opcodes and bytesize.
+
+UniSwap V3 also makes heavy use of a [`muldiv` helperfunction](https://docs.uniswap.org/contracts/v3/reference/core/libraries/FullMath) and has [taken initiative](https://ethereum-magicians.org/t/create-a-new-opcode-for-muldiv/8574) to get an `muldiv` opcode added to the EVM.
 
 ### Higher Precision Math
 
@@ -139,14 +140,15 @@ a reasonable gap for possible future introspection opcodes, so they could be gro
 
 ## Evaluation of Alternatives
 
-### Higher script limits
+### Emulating opcode functionality
 
 With a proposal such as [CHIP 2021-05 Targeted Virtual Machine Limits](https://bitcoincashresearch.org/t/chip-2021-05-targeted-virtual-machine-limits/437), it becomes practically feasable to emulate `muldiv`,`mulmod`,`adddiv` & `addmod` functionality.
-This is demonstrated in the `emulatedOpcodes.cash` example CashScript library, which only uses the current VM capabilities.
-As can be seen from just the file length, it would be impractical to use such functions in smart contracts due to the 201 opcode & 520 bytesize limit.
-By lifting or re-engeneering these limits, the same functionality proposed in the CHIP can be achieved at the cost of larger smart contracts.
-With good library support in Cashscript the complexity of using such emulated functions can be hidden from developers.
-An important difference is that `emulatedOpcodes.cash` splits integers into two 32-bit integers, this has the limitation that this can only represent up-to 63-bit integers to use with the emulated `muldiv`,`mulmod`,`adddiv` & `addmod` which in turn can be use to emulate 125-bit integer math (instead of the 127-bit math by having the native opcodes).
+This is demonstrated in the `emulatedOpcodes.cash` example CashScript library, which only uses the current BCH VM capabilities.
+This emulation is not possible inside a single smart contract with the current VM limits (201 opcode & 520 bytesize limits) but by reworking the VM limits, similar functionality as proposed in the CHIP can be achieved with some important caveats.
+
+A first limitation is that because the emulation works by splitting each integer into two 32-bit parts it can only represent up-to 63-bit integers to use with the emulated `muldiv`,`mulmod`,`adddiv` & `addmod` which in turn can be use to emulate 125-bit integer math (instead of the 127-bit math by having the native opcodes). A second limitation is that contract developers need to provide the result of the emulated arithmetic already, the contract just verifies this calculation, this is because it is not possible to emulate higher order division without loops and bitshifts. 
+
+Emulating the composite arithmetic opcodes would increase the size of smart contracts, especially when contracts make repeated use of them, for example by emulating higher order math. Another important consideration is the increased complexity that comes along with emulation but with good library support in Cashscript much of the complexity can be hidden from developers using Math helper libraries.
 
 ### Larger integers
 
@@ -157,13 +159,24 @@ As shown by UniSwap V3 still using a `MulDiv` helperfunction despite the 256-bit
 If Bitcoin Cash upgrades to larger integers (e.g. 128-bit), then `op_muldiv` and `op_mulmod` should also use this same level of precision for the result
 while allowing intermediate multiplication up to double the size (256-bit).
 
+### ADDDIVMOD and MULDIVMOD
+
+A proposed alternative is having `ADDDIVMOD`and `MULDIVMOD` which just combines the `adddiv`, `addmod` and the `muldiv`, `mulmod` 
+functionality respectively. The reasoning is that only `muldiv` would see standalone usage whereas `adddiv`, `addmod` and `mulmod` 
+would only be used in this combined way.
+It requires estimation of how much int127 math would be used compared to standalone `muldiv` usage to say what the better alternative is.
+
 ## Implementations
 
 [TODO]
 
 ## Stakeholders & Statements
 
-[TODO]
+> I’m in support of this CHIP. The size of a liquidity pool in the Cauldron DEX contract is currently limited by the size of int64.
+>
+> This can be worked around today by reducing precision (higher spread between buy and sell). With OP_MULDIV, the precision loss would be significantly less.
+
+— Dagurval, Bitcoin Cash developer and creator of Cauldron DEX
 
 ## Feedback & Reviews
 
@@ -171,6 +184,10 @@ while allowing intermediate multiplication up to double the size (256-bit).
 
 ## Changelog
 
+- **v1.2.1 – 2022-11-29**
+  - improve section on alternatives 
+  - added to statements
+  - repeat draft status in deployment section
 - **v1.2.0 – 2022-11-24**
   - fixes to emulated opcodes library
   - clarify that emulated opcodes can only do int63, and emulate int125 math

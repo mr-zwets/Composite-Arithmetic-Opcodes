@@ -25,13 +25,12 @@ library EmulatedOpcodes {
     int a0, int a1 = int63toints32(a);
     int b0, int b1 = int63toints32(b);
 
-    int lower0, int lower1 = addints32returnints32(a1 + b1);
-    int higher0, int higher1 = addints32returnints32(a0 + b0);
+    int lower0, int lower1 = addints32returnints32(a1, b1);
+    int s0, int higher1 = addints32returnints32(a0, b0);
 
     int constant maxInt32 = 2147483648; // 2 ** 31
     int result = lower1 + (lower0 + higher1) * maxInt32;
     int s1 = result;
-    int s0 = higher0;
     
     return s0, s1;
   }
