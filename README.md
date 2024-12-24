@@ -4,9 +4,11 @@
         Type: Standards
         Layer: Consensus
         Owners: Mathieu Geukens & bitcoincashautist 
-        Status: Draft
+        Status: Withdrawn
         Initial Publication Date: 2023-07-05
         Latest Revision Date: 2023-11-29
+
+This proposal has been withdrawn in favor of CHIP 2024-07 BigInt: High-Precision Arithmetic for Bitcoin Cash, which is set to activate on the BCH network May 15th 2025.
 
 ## Summary
 
